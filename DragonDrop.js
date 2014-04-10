@@ -1,7 +1,15 @@
 angular.module('DragonDrop',[])
     .directive('dragonDrop', ['$rootScope', '$http', function ($rootScope, $http) {
+        var template = "";
+        template += "<form class=\"dragondrop\" enctype=\"multipart\/form-data\">";
+        template += "    <div class=\"area\">";
+        template += "        <div ng-transclude><\/div>";
+        template += "    <\/div>";
+        template += "    <input type=\"file\" dragon-file name=\"file\" value=\"Choose file\" \/>";
+        template += "<\/form>";
+
         return {
-            templateUrl: 'template/dragondrop.html',
+            template: template,
             transclude: true,
             replace: true,
             scope: { id: '&', accepts: '&' },
@@ -78,11 +86,13 @@ angular.module('DragonDrop',[])
                 function handleDrop(data) {
                     files = data;
                     var valid = true;
-                    angular.forEach(files, function(file) {
-                        if (valid) {
-                            valid = accepts.indexOf(file.type) != -1;
-                        }
-                    });
+                    if (accepts) {
+                        angular.forEach(files, function(file) {
+                            if (valid) {
+                                valid = accepts.indexOf(file.type) != -1;
+                            }
+                        });
+                    }
                     $rootScope.$broadcast('dragondrop:dropped:' + id, files,valid);
                 }
 
@@ -157,47 +167,50 @@ angular.module('DragonDrop',[])
             });
         };
     })
-    .service('$dragondrop', ['$rootScope', '$q', function ($rootScope, $q) {
+    .factory('$dragondrop',['$rootScope','$q',function($rootScope, $q) {
+        return function(id) {
+            var self = this;
+            self.id = id;
 
-        /**
-        * calls the upload via broadcasting an event 
-        * @param {number} id - the id of the file uploader 
-        * @param {object} extra - the extra data to upload
-        * @param {object} scope - use the passed scope instead of $rootScope
-        * @returns {promise} promise
-        */
-        this.upload = function (id, extra, scope) {
-            scope = scope || $rootScope;
-            var deferred = $q.defer();
 
-            scope.$on('dragondrop:success:' + id, deferred.resolve);
-            scope.$on('dragondrop:error:' + id, deferred.reject);
+            /**
+          * calls the upload via broadcasting an event 
+          * @param {object} extra - the extra data to upload
+          * @param {object} scope - use the passed scope instead of $rootScope
+          * @returns {promise} promise
+          */
+            self.upload = function(extra, scope) {
+                scope = scope || $rootScope;
+                var deferred = $q.defer();
 
-            scope.$broadcast('dragondrop:upload:' + id, extra);
+                scope.$on('dragondrop:success:' + id, deferred.resolve);
+                scope.$on('dragondrop:error:' + id, deferred.reject);
 
-            return deferred.promise;
+                scope.$broadcast('dragondrop:upload:' + id, extra);
+
+                return deferred.promise;
+            };
+
+            /**
+          * listens the drop event for a specific  id
+          * @param {function} cb - the function to call on event
+          * @param {object} scope - the scope to use instead of $rootScope
+          */
+            self.listenToDrop = function(cb, scope) {
+                scope = scope || $rootScope;
+                scope.$on('dragondrop:dropped:' + id, cb);
+            };
+
+            /**
+          * listens the manual event for a specific  id
+          * @param {function} cb - the function to call on event
+          * @param {object} scope - the scope to use instead of $rootScope
+          */
+            self.listenToManual = function(cb, scope) {
+                scope = scope || $rootScope;
+                scope.$on('dragondrop:manual:' + id, cb);
+            };
+
+            return self;
         };
-
-        /**
-        * listens the drop event for a specific  id
-        * @param {number} id - the id of the uploader
-        * @param {function} cb - the function to call on event
-        * @param {object} scope - the scope to use instead of $rootScope
-        */
-        this.listenToDrop = function (id, cb, scope) {
-            scope = scope || $rootScope;
-            scope.$on('dragondrop:dropped:' + id, cb);
-        };
-
-        /**
-        * listens the manual event for a specific  id
-        * @param {number} id - the id of the uploader
-        * @param {function} cb - the function to call on event
-        * @param {object} scope - the scope to use instead of $rootScope
-        */
-        this.listenToManual = function (id, cb, scope) {
-            scope = scope || $rootScope;
-            scope.$on('dragondrop:manual:' + id, cb);
-        };
-
     }]);
