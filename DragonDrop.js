@@ -183,7 +183,9 @@ angular.module('DragonDrop',[])
                 scope = scope || $rootScope;
                 var deferred = $q.defer();
 
-                scope.$on('dragondrop:success:' + id, deferred.resolve);
+                scope.$on('dragondrop:success:' + id, function (event, response) {
+                    deferred.resolve(response);
+                });
                 scope.$on('dragondrop:error:' + id, deferred.reject);
 
                 scope.$broadcast('dragondrop:upload:' + id, extra);
