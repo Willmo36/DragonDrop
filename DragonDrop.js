@@ -1,4 +1,4 @@
-angular.module('DragonDrop',[])
+angular.module('DragonDrop', [])
     .directive('dragonDrop', ['$rootScope', '$http', function ($rootScope, $http) {
         var template = "";
         template += "<form class=\"dragondrop\" enctype=\"multipart\/form-data\">";
@@ -26,7 +26,7 @@ angular.module('DragonDrop',[])
                 var isManual;
                 var isBusy;
                 var files;
-                
+
                 if (angular.isUndefined(id)) throw new Error('DragonDrop: id is required.');
                 if (angular.isUndefined(url)) throw new Error('DragonDrop: url is required.');
                 if (angular.isUndefined(manualUrl)) throw new Error('DragonDrop: manual-url is required.');
@@ -71,6 +71,7 @@ angular.module('DragonDrop',[])
                     scope.$on('dragondrop:upload:' + id, function (event, extradata) {
                         if (isManual) {
                             element[0].submit();
+                            busy(true);
                         } else {
                             uploadDropped(extradata);
                         }
@@ -87,13 +88,13 @@ angular.module('DragonDrop',[])
                     files = data;
                     var valid = true;
                     if (accepts) {
-                        angular.forEach(files, function(file) {
+                        angular.forEach(files, function (file) {
                             if (valid) {
                                 valid = accepts.indexOf(file.type) != -1;
                             }
                         });
                     }
-                    $rootScope.$broadcast('dragondrop:dropped:' + id, files,valid);
+                    $rootScope.$broadcast('dragondrop:dropped:' + id, files, valid);
                 }
 
                 /**
@@ -142,11 +143,25 @@ angular.module('DragonDrop',[])
                 * sets the busy state and class
                 */
                 function busy(on) {
-                    isBusy = on;
+                    scope.isBusy = on;
                     if (isBusy) element.addClass(busyClass);
                     else element.removeClass(busyClass);
 
                     $rootScope.$broadcast('dragondrop:busy:' + id, on);
+                    setManualDisplay(on);
+                }
+
+                /*
+                * sets the display of the manual upload button.
+                */
+                function setManualDisplay(on) {
+                    debugger;
+                    var manual = angular.element(element.children()[1]);
+                    if (on)
+                        manual[0].style.display = 'none';
+                    else {
+                        manual[0].style.display = 'block';
+                    }
                 }
 
                 /**
@@ -167,8 +182,8 @@ angular.module('DragonDrop',[])
             });
         };
     })
-    .factory('$dragondrop',['$rootScope','$q',function($rootScope, $q) {
-        return function(id) {
+    .factory('$dragondrop', ['$rootScope', '$q', function ($rootScope, $q) {
+        return function (id) {
             var self = this;
             self.id = id;
 
@@ -179,14 +194,17 @@ angular.module('DragonDrop',[])
           * @param {object} scope - use the passed scope instead of $rootScope
           * @returns {promise} promise
           */
-            self.upload = function(extra, scope) {
+            self.upload = function (extra, scope) {
                 scope = scope || $rootScope;
                 var deferred = $q.defer();
 
                 scope.$on('dragondrop:success:' + id, function (event, response) {
                     deferred.resolve(response);
                 });
-                scope.$on('dragondrop:error:' + id, deferred.reject);
+
+                scope.$on('dragondrop:error:' + id, function () {
+                    deferred.reject();
+                });
 
                 scope.$broadcast('dragondrop:upload:' + id, extra);
 
@@ -198,7 +216,7 @@ angular.module('DragonDrop',[])
           * @param {function} cb - the function to call on event
           * @param {object} scope - the scope to use instead of $rootScope
           */
-            self.listenToDrop = function(cb, scope) {
+            self.listenToDrop = function (cb, scope) {
                 scope = scope || $rootScope;
                 scope.$on('dragondrop:dropped:' + id, cb);
             };
@@ -208,7 +226,7 @@ angular.module('DragonDrop',[])
           * @param {function} cb - the function to call on event
           * @param {object} scope - the scope to use instead of $rootScope
           */
-            self.listenToManual = function(cb, scope) {
+            self.listenToManual = function (cb, scope) {
                 scope = scope || $rootScope;
                 scope.$on('dragondrop:manual:' + id, cb);
             };
